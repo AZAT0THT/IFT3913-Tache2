@@ -11,6 +11,8 @@ dependency-reduced-pom.xml
 *.bin
 # Allow the bundled ML model resources
 !**/src/main/resources/**/*.bin
+# Conserver les fichiers binaires utilises par les tests
+!**/src/test/resources/**/*.bin
 nbactions.xml
 nb-configuration.xml
 *.DS_Store
