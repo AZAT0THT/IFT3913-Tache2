@@ -129,7 +129,7 @@
         <version>2.1.1</version>
         <configuration>
           <apiKeys>local</apiKeys>
-          <model>qwen2.5-coder:3b</model>
+          <model>codeqwen:v1.5-chat</model>
           <url>http://localhost:11434/v1/chat/completions</url>
           <thread>false</thread>
           <testNumber>1</testNumber>
