@@ -1,3 +1,4 @@
+# DateUtils
 ## Choix de la classe DateUtilis
 
 La classe `org.apache.tika.utils.DateUtils`, dans `tika-core`,
@@ -40,6 +41,64 @@ Mutants survivants dans `DateUtils.java` :
 | 66 | Retour de `null` dans `createDateFormat` |
 | 138 | Retour d'une liste vide dans `loadDateFormats` |
 | 151 | Remplacement de la condition de longueur `< 6` par `<= 6` |
+
+## Génération et correction du test DateUtils
+
+La génération a été exécutée avec ChatUniTest 2.1.1 et le modèle
+`codeqwen:v1.5-chat`, exécuté localement avec Ollama.
+Paramètres : `testNumber=1`, `maxRounds=2`, `thread=false`.
+
+Commande depuis la racine du dépôt :
+
+```bash
+./mvnw -f tika-core/pom.xml \
+  io.github.zju-aces-ise:chatunitest-maven-plugin:2.1.1:method \
+  '-DselectMethod=org.apache.tika.utils.DateUtils#tryToParse'
+```
+
+### Résultat sans correction manuelle
+
+L'exécution a duré 9 min 7 s. Aucun test n'a été automatiquement validé :
+
+- Première ronde : échec de compilation à cause d'imports Mockito
+  ajoutés par ChatUniTest, absents de la réponse initiale du modèle.
+- Deuxième ronde : le modèle a proposé davantage de Mockito et une
+  réponse séparée en plusieurs blocs. ChatUniTest n'a pas pu extraire le code.
+
+### Corrections et intégration
+
+Le premier test généré a été repris dans
+`tika-core/src/test/java/org/apache/tika/utils/DateUtilsChatUniTestTest.java`.
+
+Trois corrections ont été appliquées manuellement :
+
+1. Nettoyage des imports inutiles, notamment Mockito.
+2. Construction de la date attendue avec `Date.from(Instant.parse(...))`.
+   Cela évite l'exception non gérée de `SimpleDateFormat.parse` et fixe
+   explicitement l'instant attendu en UTC.
+3. Remplacement de la donnée prétendument invalide par `"not-a-date"`.
+   La chaîne initialement choisie, `"2022-01-01T12:00:00"`, est acceptée
+   par Tika.
+
+### Critique des oracles
+
+Le test propose trois scénarios pertinents : date valide, chaîne invalide
+et valeur nulle. Toutefois, son oracle initial pour la date valide dépend
+du fuseau local, et son scénario « invalide » attend un résultat incorrect.
+
+Après correction, l'égalité vérifie un instant UTC précis et les assertions
+`assertNull` vérifient le rejet des entrées concernées. Le test est tout de
+même limité, il ne vérifie pas explicitement les décalages horaires ni la limite 
+de longueur de six caractères.
+
+### Validation locale
+
+```bash
+./mvnw -pl tika-core -Dtest=DateUtilsChatUniTestTest test
+```
+
+Résultats obtenus : une méthode de test contenant trois assertions,
+zéro échec, zéro erreur et `BUILD SUCCESS`.
 
 
 # Tests pour la classe EndianUtils
