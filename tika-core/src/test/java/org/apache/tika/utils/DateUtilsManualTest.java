@@ -29,4 +29,3 @@ public class DateUtilsManualTest {
         assertNotNull(dateUtils.tryToParse("99-1-1"));
     }
 }
-
