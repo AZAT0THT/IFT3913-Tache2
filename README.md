@@ -82,14 +82,32 @@ Trois corrections ont été appliquées manuellement :
 
 ### Critique des oracles
 
-Le test propose trois scénarios pertinents : date valide, chaîne invalide
-et valeur nulle. Toutefois, son oracle initial pour la date valide dépend
-du fuseau local, et son scénario « invalide » attend un résultat incorrect.
+Le test généré propose trois scénarios : une date valide, une chaîne
+présentée comme invalide et une valeur nulle. Cependant, son oracle
+initial dépend du fuseau local et la chaîne présentée comme invalide
+est en réalité acceptée par Tika. Après correction, `assertEquals` 
+vérifie un instant UTC précis.
+Les deux assertions `assertNull` vérifient le rejet de `"not-a-date"`
+et de `null`. Ces assertions vérifient des résultats observables,
+mais la justesse des données et des valeurs attendues a nécessité
+une intervention humaine.
 
-Après correction, l'égalité vérifie un instant UTC précis et les assertions
-`assertNull` vérifient le rejet des entrées concernées. Le test est tout de
-même limité, il ne vérifie pas explicitement les décalages horaires ni la limite 
-de longueur de six caractères.
+Le test original `TestMetadata.testGetSetDate()` possède déjà des
+oracles précis : il compare notamment des dates à des valeurs
+connues en millisecondes et vérifie plusieurs formats et décalages
+horaires. Le test généré corrigé couvre moins de variantes, mais
+exerce directement une nouvelle instance de `DateUtils`.
+
+Le test ajouté manuellement, `acceptsSixCharacterDate()`, cible une
+limite absente du test généré : une entrée reconnue de six caractères.
+Son oracle `assertNotNull` est moins précis qu'une égalité sur 
+la date obtenue, mais il suffit pour distinguer l'acceptation de l'entrée
+de son rejet par le mutant `< 6` remplacé par `<= 6`.
+
+Les deux nouveaux tests sont donc complémentaires : le premier
+vérifie des résultats pour trois scénarios, tandis que le second
+cible précisément le mutant restant.
+
 
 ### Validation locale
 
