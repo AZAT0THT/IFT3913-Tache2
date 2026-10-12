@@ -114,7 +114,7 @@ que l'analyse initiale, avec le test généré corrigé ajouté aux tests origin
 | Score de mutation | 78,26 % | 95,65 % |
 | Lignes couvertes selon PIT | 37/38 | 38/38 |
 
-Le gain est de quatre mutants détectés, soit +17,39 %.
+Le gain est de quatre mutants détectés, soit un gain de 17,39 point de pourcntage.
 
 ### Mutants détectés par le test ajouté
 
@@ -152,6 +152,34 @@ Il ne distingue donc pas ces deux conditions.
 Ce survivant montre que couvrir toutes les lignes ne garantit pas
 de vérifier toutes les valeurs limites.
 
+## Test manuel et résultat final pour DateUtils
+
+Fichier contenant les tests manuels :
+`tika-core/src/test/java/org/apache/tika/utils/DateUtilsManualTest.java`
+
+| Élément | Documentation |
+|---|---|
+| Nom | `acceptsSixCharacterDate()` |
+| Intention | Vérifier qu'une date reconnue par le parseur et longue d'exactement six caractères est acceptée. |
+| Donnée choisie | `"99-1-1"` comporte exactement six caractères. Le parseur actuel accepte ces champs numériques abrégés. Cette donnée cible précisément la frontière modifiée par PIT. |
+| Oracle | `assertNotNull` vérifie que l'analyse produit une date. Il vérifie ici l'aceptation de l'entrée, sans controler la valeur exacte de la date obtenue. |
+| Mutant ciblé | Ligne 151 : remplacement de `dateString.length() < 6` par `dateString.length() <= 6`. |
+| Pourquoi il est détecté | Le code original poursuit l'analyse et retourne une date. Le mutant rejette immédiatement cette entrée et retourne `null`, faisant échouer l'assertion. |
+
+Le test ciblé passe sans erreur. Le rapport PIT confirme que ce test
+détecte le dernier mutant survivant.
+
+### Comparaison finale
+
+| Suite cumulative | Détectés | Survivants | Sans couverture | Score |
+|---|---:|---:|---:|---:|
+| Tests originaux | 18 | 5 | 0 | 78,26 % |
+| + test généré corrigé | 22 | 1 | 0 | 95,65 % |
+| + test manuel | 23 | 0 | 0 | 100 % |
+
+La dernière analyse couvre 38/38 lignes selon PIT et termine par
+`BUILD SUCCESS`. Ces résultats concernent les 23 mutants produits
+avec la configuration utilisée mais ils ne prouvent pas l'absence de bogues.
 
 # Tests pour la classe EndianUtils
 #### Couverture initiale JaCoCo : **23 % des instructions**, **35 % des branches**, **31/121 lignes**, soit environ **26 % des lignes**.
