@@ -100,6 +100,58 @@ de longueur de six caractères.
 Résultats obtenus : une méthode de test contenant trois assertions,
 zéro échec, zéro erreur et `BUILD SUCCESS`.
 
+## PIT après ajout du test généré corrigé
+
+L'analyse utilise la même commande et la même configuration PIT
+que l'analyse initiale, avec le test généré corrigé ajouté aux tests originaux.
+
+| Mesure | Tests originaux | Avec le test généré corrigé |
+|---|---:|---:|
+| Mutants générés | 23 | 23 |
+| Détectés | 18 | 22 |
+| Survivants | 5 | 1 |
+| Sans couverture | 0 | 0 |
+| Score de mutation | 78,26 % | 95,65 % |
+| Lignes couvertes selon PIT | 37/38 | 38/38 |
+
+Le gain est de quatre mutants détectés, soit +17,39 %.
+
+### Mutants détectés par le test ajouté
+
+Le rapport XML attribue huit détections à
+`DateUtilsChatUniTestTest.testTryToParse()`.
+Quatre correspondent à des mutants auparavant survivants :
+
+| Ligne | Mutation | Pourquoi le test la détecte |
+|---|---|---|
+| 63 | Inversion de la condition sur le fuseau | Le format avec `Z` conserve le fuseau local au lieu d'UTC. Dans un environnement non UTC, l'instant obtenu diffère de l'instant attendu. |
+| 64 | Suppression de `setTimeZone` | L'interprétation de la date utilise le fuseau local. L'égalité avec l'instant UTC attendu échoue dans un environnement non UTC. |
+| 66 | Retour de `null` dans `createDateFormat` | L'utilisation d'un formateur nul provoque une exception pendant l'analyse de la date valide. |
+| 138 | Retour d'une liste vide dans `loadDateFormats` | Aucun format n'est essayé : la méthode retourne `null` pour la date valide, ce qui fait échouer l'assertion. |
+
+Les quatre autres mutants attribués au nouveau test étaient déjà détectés
+par les tests originaux :
+
+- Ligne 151, deux inversions de conditions : la date valide est rejetée
+  prématurément et produit `null`.
+- Ligne 157, remplacement de `n - 3` par `n + 3` :
+  l'accès à la chaîne dépasse ses limites et provoque une exception.
+- Ligne 164, remplacement du résultat par `null` :
+  l'assertion sur la date valide échoue.
+
+La détection des mutations portant sur le fuseau dépend de l'environnement
+d'exécution ; le score précédent est celui mesuré localement.
+
+### Mutant restant
+
+À la ligne 151, PIT remplace `dateString.length() < 6`
+par `dateString.length() <= 6`.
+
+Le test ajouté ne fournit aucune chaîne de longueur exactement six.
+Il ne distingue donc pas ces deux conditions.
+Ce survivant montre que couvrir toutes les lignes ne garantit pas
+de vérifier toutes les valeurs limites.
+
 
 # Tests pour la classe EndianUtils
 #### Couverture initiale JaCoCo : **23 % des instructions**, **35 % des branches**, **31/121 lignes**, soit environ **26 % des lignes**.
