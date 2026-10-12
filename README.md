@@ -7,6 +7,8 @@ dans `tika-core/src/test/java/org/apache/tika/metadata/TestMetadata.java`.
 Nous la retenons parce que sa couverture est incomplète et que
 cinq mutants survivent aux tests originaux. Une forte couverture
 ne garantit donc pas que les assertions détectent toutes les erreurs.
+Il est pertinent d'analyser une classe possédant déjà une forte couverture
+(mais toujours inférieure à 100%).
 
 Mesures JaCoCo avant ajout de tests :
   Classe : 98 % des instructions et 85 % des branches.
