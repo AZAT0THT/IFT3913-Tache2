@@ -202,29 +202,29 @@ avec la configuration utilisée mais ils ne prouvent pas l'absence de bogues.
 # Tests pour la classe EndianUtils
 #### Couverture initiale JaCoCo : **23 % des instructions**, **35 % des branches**, **31/121 lignes**, soit environ **26 % des lignes**.
 
-
 ## Génération de tests : passage du modèle 3B au 7B
 
-Premier essai : On utililse le modèle `qwen2.5-coder:3b`. La génération initiale et la réparation automatique ont échoué à la compilation : mauvais import d’exception, Mockito indisponible et problèmes de simulation du flux.
+Premier essai : On a utilisé le modèle `qwen2.5-coder:3b`. La génération initiale et la réparation automatique ont échoué à la compilation : mauvais import d'exception, Mockito indisponible et problèmes de simulation du flux.
 
 Configuration : URL locale `http://localhost:11434/v1/chat/completions`, clé de configuration `local`, `testNumber=1`, `maxRounds=2`, méthode ciblée `EndianUtils#readUIntBE`.
 
 Deuxième essai : `qwen2.5-coder:7b`. On a essayé un modèle plus grand pour générer des tests plus efficaces.
 
-Avec les mêmes méthodes et mêmes paramètres, le 7B a proposé **9 méthodes de test**, avec de vrais flux `ByteArrayInputStream`. Les deux rondes ont encore échoué : deux constantes étaient trop grandes pour un `long` Java.
+Avec la même méthode et les mêmes paramètres, le 7B a proposé **9 méthodes de test**, avec de vrais flux `ByteArrayInputStream`. Les deux rondes ont encore échoué : deux constantes étaient trop grandes pour un `long` Java.
 
 ## Réparation des tests générés
 
 Fichier ajouté : **`EndianUtilsChatUniTest7BTest.java`**. Les neuf cas du 7B ont été conservés et réparés.
 
-**Quatre corrections fonctionnelles**, en comptant le nettoyage des imports comme une correction :
+**Cinq corrections**, en comptant le nettoyage des imports comme une correction :
 
 1. Importer `EndianUtils.BufferUnderrunException` au bon emplacement.
-2. Remplacer le résultat attendu 1 par **0** pour les huit octets commençant par quatre zéros.
-3. Remplacer la constante du cas « long négatif » par **4294967295L**.
-4. Remplacer celle du cas « long maximal » par **4294967295L** également.
+2. Supprimer les imports inutiles, notamment ceux de Mockito.
+3. Remplacer le résultat attendu 1 par **0** pour les huit octets commençant par quatre zéros.
+4. Remplacer la constante du cas « long négatif » par **4294967295L**.
+5. Remplacer celle du cas « long maximal » par **4294967295L** également.
 
-La cause des trois erreurs d’oracle vient du fait que readUIntBE ne lit que quatre octets, même si le flux en contient huit. Les deux dernières corrections permettent également de résoudre les problèmes liés aux constantes impossibles à compiler. Enfin, des adaptations supplémentaires ont été apportées, notamment le renommage de la classe, l’ajout de la licence Apache et des ajustements de mise en forme.
+La cause des trois erreurs dans les résultats attendus vient du fait que `readUIntBE` ne lit que quatre octets, même si le flux en contient huit. Les deux dernières corrections permettent également de résoudre les problèmes liés aux constantes impossibles à compiler. Enfin, des adaptations supplémentaires ont été apportées, notamment le renommage de la classe, l'ajout de la licence Apache et des ajustements de mise en forme.
 
 ## Tests manuels
 
@@ -238,7 +238,13 @@ Fichier : **`EndianUtilsManualTest.java`**.
 | `rejectsSevenByteBigEndianLongInput` | Sept octets au lieu de huit pour `readLongBE` : attendre `BufferUnderrunException`. |
 | `rejectsSevenByteLittleEndianLongInput` | Même vérification pour `readLongLE`. |
 
-Les octets distincts révèlent les erreurs d’ordre ou de calcul; `84` et `85` exercent le bit de poids fort; les zéros vérifient une limite valide. Les flux tronqués sont exactement un octet trop courts.
+Les octets distincts révèlent les erreurs d'ordre ou de calcul; `84` et `85` exercent le bit de poids fort; les zéros vérifient une limite valide. Les flux tronqués sont exactement un octet trop courts.
+
+## Comparaison des assertions
+
+Les tests générés utilisent `assertEquals` pour vérifier la valeur obtenue et `assertThrows` pour vérifier qu'un flux trop court provoque l'exception attendue. Ils vérifient donc des résultats précis. Cependant, certains tests donnent huit octets à une méthode qui n'en lit que quatre : après correction, ils répètent des vérifications déjà présentes. Les tests originaux vérifiaient aussi déjà de grandes valeurs non signées.
+
+Les tests manuels utilisent les mêmes assertions, mais ajoutent des cas manquants : un flux de trois octets pour `readUIntBE`, puis des lectures sur huit octets en big-endian et little-endian. Les valeurs attendues vérifient l'ordre des octets, tandis que les flux de sept octets vérifient le rejet des données incomplètes. Ils élargissent donc les comportements testés au-delà de la méthode ciblée par ChatUniTest.
 
 ## Résultats PIT
 
@@ -250,3 +256,13 @@ Les octets distincts révèlent les erreurs d’ordre ou de calcul; `84` et `85`
 | + quatre autres tests manuels | **76** | **24** | **106** | **36,89 %** | **54/121** |
 
 Toujours **206 mutants**. Score = détectés / 206. PIT affiche **37 %** au dernier lancement; la couverture des lignes atteint **44,63 %**, affichée **45 %**.
+
+### Mutant supplémentaire détecté par les tests générés
+
+Le passage de 38 à 39 mutants détectés vient du test `testReadUIntBEWithZeroValues()`. Il fournit quatre octets nuls à `readUIntBE` et vérifie que le résultat est 0. À la ligne 111, le mutant remplace la condition `< 0` par `<= 0`. Il rejette alors ces octets pourtant valides et lève une exception : le test échoue et détecte donc le mutant.
+
+### Limites des tests
+
+À la fin, 24 mutants restent vivants : les tests exécutent le code concerné, mais ne détectent pas ces modifications. Les 106 mutants sans couverture correspondent à du code que les tests n'exécutent pas. La génération ciblait seulement `readUIntBE`, et les tests manuels ont ajouté des cas pour `readLongBE` et `readLongLE`; plusieurs autres méthodes restent donc insuffisamment testées.
+
+Le nombre de survivants augmente parce que 12 mutants auparavant sans couverture sont maintenant exécutés, mais restent non détectés. Les tests améliorent la détection sans couvrir toute la classe. Nous n'avons pas démontré que les mutants restants sont équivalents au code original.
